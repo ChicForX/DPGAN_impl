@@ -39,5 +39,5 @@ class Generator(nn.Module):
 
     def forward(self, z):
         z = self.model(z)
-        return z.view(-1, self.image_shape)
+        return z.view(-1, *self.image_shape)
 

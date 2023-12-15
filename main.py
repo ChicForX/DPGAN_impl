@@ -67,8 +67,8 @@ if __name__ == "__main__":
         G = G.cuda()
 
     # optimizer
-    optimizer_D = torch.optim.Adam(D.parameters(), lr=lr_D)
-    optimizer_G = torch.optim.Adam(G.parameters(), lr=lr_G)
+    optimizer_D = torch.optim.RMSprop(D.parameters(), lr=lr_D)
+    optimizer_G = torch.optim.RMSprop(G.parameters(), lr=lr_G)
 
     # differential privacy
     if args.config_model == 2:  # dp-wgan-gp
@@ -77,8 +77,8 @@ if __name__ == "__main__":
             module=D,
             optimizer=optimizer_D,
             data_loader=dataloader,
-            noise_multiplier=0.2,
-            max_grad_norm=5.0,
+            noise_multiplier=cfg['noise_multiplier'],
+            max_grad_norm=cfg['max_grad_norm'],
             grad_sample_mode="functorch"  # functorch based per-sample gradient computation (no hooks, no warnings)
         )
 
