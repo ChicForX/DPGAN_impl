@@ -9,6 +9,7 @@ import utils
 from opacus import PrivacyEngine
 import argparse
 import config
+from pretrain_D import pretrain_discriminator
 
 if __name__ == "__main__":
 
@@ -28,7 +29,7 @@ if __name__ == "__main__":
 
     # Set hyperparameters
     total_epochs = cfg['total_epochs']
-    batch_size = 64
+    batch_size = cfg['batch_size']
     lr_D = cfg['lr_D']
     lr_G = cfg['lr_G']
     num_workers = cfg['num_workers']  # 0 for opacus
@@ -36,13 +37,15 @@ if __name__ == "__main__":
     image_size = 784
     image_width = 28
     channel = 1
-    a = 10  # gradient penalty
+    a = 10  # gradient penalty lamda
     clip_value = 0.01
     dataset_dir = "./dataset/MNIST"
     gen_images_dir = cfg['gen_images_dir']
     os.makedirs(dataset_dir, exist_ok=True)
     os.makedirs(gen_images_dir, exist_ok=True)
     image_shape = (channel, image_width, image_width)
+    L_epsilon = 0.01
+    sensitivity = 1.0
 
     # Get data
     transform = transforms.Compose(
@@ -70,8 +73,15 @@ if __name__ == "__main__":
     optimizer_D = torch.optim.RMSprop(D.parameters(), lr=lr_D)
     optimizer_G = torch.optim.RMSprop(G.parameters(), lr=lr_G)
 
+    if args.config_model == 3: # gs-wgan
+        # pretrain discriminator
+        pretrain_discriminator(D, data_loader=dataloader, epochs=5, batch_size=batch_size, noise_dim=noise_dim, cuda=cuda)
+        # add hook for discriminator
+        global dynamic_hook
+        D.model[0].register_backward_hook(utils.create_dp_hook)
+
     # differential privacy
-    if args.config_model == 2:  # dp-wgan-gp
+    if args.config_model == 2:  # dp-wgan
         privacy_engine = PrivacyEngine(accountant='rdp')
         model, optimizer_D, dataloader = privacy_engine.make_private(
             module=D,
@@ -93,25 +103,44 @@ if __name__ == "__main__":
             if cuda:
                 real_imgs = real_imgs.cuda()
 
-            # discriminator
+            ############################################
+            # ----------train discriminator------------#
+            ############################################
+            # no hook
+            if args.config_model == 3:
+                dynamic_hook = utils.dummy_hook
+
             optimizer_D.zero_grad()
             z = torch.randn((bs, noise_dim))
             if cuda:
                 z = z.cuda()
             fake_imgs = G(z).detach()
+            D_real_score = D(real_imgs)
             if args.config_model == 2:
                 # gradient penalty is included in opacus
-                loss_D = -torch.mean(D(real_imgs)) + torch.mean(D(fake_imgs))
+                loss_D = -torch.mean(D_real_score) + torch.mean(D(fake_imgs))
             else:
                 gp = utils.grad_penalty(D, real_imgs, fake_imgs, cuda)
                 # gradient penalty
-                loss_D = -torch.mean(D(real_imgs)) + torch.mean(D(fake_imgs)) + a * gp
+                loss_D = -torch.mean(D_real_score) + torch.mean(D(fake_imgs)) + a * gp
+
+            if args.config_model == 3:
+                # epsilon penalty
+                logit_cost = L_epsilon * torch.pow(D_real_score, 2).mean()
+                loss_D += logit_cost
 
             loss_D.backward()
             optimizer_D.step()
             LD += loss_D.item()
 
-            # generator
+            ############################################
+            # ------------train generator--------------#
+            ############################################
+            if args.config_model == 3:
+                for p in D.parameters():
+                    p.requires_grad = False
+                dynamic_hook = utils.dp_hook
+
             optimizer_G.zero_grad()
             gen_imgs = G(z)
             loss_G = -torch.mean(D(gen_imgs))

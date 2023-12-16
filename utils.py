@@ -20,33 +20,33 @@ def grad_penalty(discriminator, real_images, fake_images, cuda):
     gradient_penalty = ((gradients.norm(2, dim=1) - 1) ** 2).mean()
     return gradient_penalty
 
-#pruning
+# pruning
+# TODO
 
+# gradient hook: adding noise only. grad clipping is replaced by grad penalty.
+def create_dp_hook(module, grad_input, grad_output):
+    global dynamic_hook
+    return dynamic_hook(module, grad_input, grad_output)
 
-#visualization
+def dummy_hook(module, grad_input, grad_output):
+    pass
 
+def dp_hook(module, grad_in, grad_out, sensitivity):
+    global noise_multiplier
+    grad_wrt_image = grad_in[0]
+    grad_input_shape = grad_wrt_image.size()
+    batchsize = grad_input_shape[0]
 
-def plot_sampled_images(real_images, fake_images, num_samples=10):
-    # sample from batch
-    sampled_indices = np.random.choice(range(real_images.size(0)), num_samples, replace=False)
-    real_samples = real_images[sampled_indices].detach().cpu().view(num_samples, 28, 28)
-    fake_samples = fake_images[sampled_indices].detach().cpu().view(num_samples, 28, 28)
+    # reshape
+    grad_wrt_image = grad_wrt_image.view(batchsize, -1)
 
-    fig, axes = plt.subplots(4, num_samples // 2, figsize=((num_samples // 2) * 2, 8))
+    # add noise, regarding noise_multiplier and SENSITIVITY
+    noise = noise_multiplier * sensitivity * torch.randn_like(grad_wrt_image)
+    grad_wrt_image = grad_wrt_image + noise
 
-    for i in range(num_samples // 2):
-        # real
-        axes[0, i].imshow(real_samples[i], cmap='gray')
-        axes[0, i].axis('off')
-        axes[1, i].imshow(real_samples[num_samples // 2 + i], cmap='gray')
-        axes[1, i].axis('off')
+    # reshape to original grad shape
+    grad_in_new = [grad_wrt_image.view(grad_input_shape)]
+    for i in range(len(grad_in) - 1):
+        grad_in_new.append(grad_in[i + 1])
 
-        # fake
-        axes[2, i].imshow(fake_samples[i], cmap='gray')
-        axes[2, i].axis('off')
-        axes[3, i].imshow(fake_samples[num_samples // 2 + i], cmap='gray')
-        axes[3, i].axis('off')
-
-    plt.show()
-
-
+    return tuple(grad_in_new)
