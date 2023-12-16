@@ -18,4 +18,5 @@ paper:
 
 2.DP-WGAN | Differentially Private Generative Adversarial Network(Xie et al., 2018)
 
-3.GS-WGAN | GS-WGAN: A Gradient-Sanitized Approach for Learning Differentially Private Generators(Chen et al., 2021) | [Source Code]([https://github.com/](https://github.com/DingfanChen/GS-WGAN)https://github.com/DingfanChen/GS-WGAN)
+3.GS-WGAN | GS-WGAN: A Gradient-Sanitized Approach for Learning Differentially Private Generators(Chen et al., 2021) | [Source Code](https://github.com/DingfanChen/GS-WGAN
+)
