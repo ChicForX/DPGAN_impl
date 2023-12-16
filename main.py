@@ -45,7 +45,7 @@ if __name__ == "__main__":
     os.makedirs(gen_images_dir, exist_ok=True)
     image_shape = (channel, image_width, image_width)
     L_epsilon = 0.01
-    sensitivity = 1.0
+    sensitivity = 2.0
 
     # Get data
     transform = transforms.Compose(
@@ -77,7 +77,7 @@ if __name__ == "__main__":
         # pretrain discriminator
         pretrain_discriminator(D, data_loader=dataloader, epochs=5, batch_size=batch_size, noise_dim=noise_dim, cuda=cuda)
         # add hook for discriminator
-        global dynamic_hook
+        utils.dynamic_hook = utils.dummy_hook
         D.model[0].register_backward_hook(utils.create_dp_hook)
 
     # differential privacy
@@ -109,6 +109,8 @@ if __name__ == "__main__":
             # no hook
             if args.config_model == 3:
                 dynamic_hook = utils.dummy_hook
+                for p in D.parameters():
+                    p.requires_grad = True
 
             optimizer_D.zero_grad()
             z = torch.randn((bs, noise_dim))

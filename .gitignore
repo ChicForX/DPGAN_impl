@@ -1,5 +1,5 @@
-./gen_images_dpwgan
-./gen_images_wgan
-./gen_images_gswgan
-./_pycache_
-./.idea
+gen_images_dpwgan
+gen_images_wgan
+gen_images_gswgan
+_pycache_
+.idea

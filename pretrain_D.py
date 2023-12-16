@@ -6,8 +6,8 @@ def pretrain_discriminator(D, data_loader, epochs, batch_size, noise_dim, cuda):
     PreG = Generator()
     if cuda:
         PreG = PreG.cuda()
-    optimizerD = optim.Adam(D.parameters(), lr=1e-4)
-    optimizerG = optim.Adam(PreG.parameters(), lr=1e-4)
+    optimizerD = optim.Adam(D.parameters(), lr=1e-4, betas=(0.5, 0.9))
+    optimizerG = optim.Adam(PreG.parameters(), lr=1e-4, betas=(0.5, 0.9))
 
     for epoch in range(epochs):
         for i, (real_imgs, _) in enumerate(data_loader):

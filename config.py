@@ -20,13 +20,10 @@ config_dp_wgan_gp = {
 }
 
 config_gs_wgan = {
-    'lr_D': 5e-4,
-    'lr_G': 2e-4,
+    'lr_D': 5e-5,
+    'lr_G': 5e-5,
     'gen_images_dir': "./gen_images_gswgan",
     'num_workers': 0,
     'total_epochs': 35,
-    'batch_size': 128,
-    'delta': 1e-4,
-    'noise_multiplier': 0.3,
-    'max_grad_norm': 10.0
+    'batch_size': 128
 }
