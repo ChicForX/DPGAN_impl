@@ -10,6 +10,10 @@ GS-WGAN: WGAN using DP hook, where noise is added, and gradient penalty. Pretrai
 
 Different from original GS-WGAN source code, gradient clipping is not adopted, since gradient penalty affored a strict constraint already, according to paper.1.
 
+## Startup Command
+
+Using an additional parameter config_model with values 1, 2, 3, corresponds to the three models WGAN-GP, DP-WGAN, and GS-WGAN respectively. For example: py .\main.py 1.
+
 ## Reference
 
 paper:
