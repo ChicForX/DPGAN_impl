@@ -45,7 +45,7 @@ if __name__ == "__main__":
     os.makedirs(gen_images_dir, exist_ok=True)
     image_shape = (channel, image_width, image_width)
     L_epsilon = 0.01
-    sensitivity = 2.0
+    sensitivity = 1.0
 
     # Get data
     transform = transforms.Compose(
@@ -137,7 +137,7 @@ if __name__ == "__main__":
             # ------------train generator--------------#
             ############################################
             if args.config_model == 3:
-                utils.dynamic_hook = utils.dp_hook(sensitivity, cfg['noise_multiplier'])
+                utils.dynamic_hook = utils.dp_hook(sensitivity, cfg['noise_multiplier'], cfg['clip_bound_batch'])
 
             optimizer_G.zero_grad()
             gen_imgs = G(z)

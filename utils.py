@@ -31,7 +31,7 @@ def master_hook_adder(module, grad_input, grad_output):
 def dummy_hook(module, grad_input, grad_output):
     pass
 
-def dp_hook(sensitivity, noise_multiplier):
+def dp_hook(sensitivity, noise_multiplier, clip_bound_batch):
     def hook_function(module, grad_input, grad_output):
         grad_wrt_input = grad_input[0]
         grad_input_shape = grad_wrt_input.size()
@@ -40,8 +40,15 @@ def dp_hook(sensitivity, noise_multiplier):
         # reshape
         grad_wrt_input = grad_wrt_input.view(batch_size, -1)
 
+        # clipping
+        clip_bound = clip_bound_batch / batch_size
+        grad_input_norm = torch.norm(grad_wrt_input, p=2, dim=1)
+        clip_coef = clip_bound / (grad_input_norm + 1e-10)
+        clip_coef = clip_coef.unsqueeze(-1)
+        grad_wrt_input = clip_coef * grad_wrt_input
+
         # add noise, considering noise_multiplier and sensitivity
-        noise = noise_multiplier * sensitivity * torch.randn_like(grad_wrt_input)
+        noise = clip_bound * noise_multiplier * sensitivity * torch.randn_like(grad_wrt_input)
         grad_wrt_input = grad_wrt_input + noise
 
         # reshape to the original grad shape
