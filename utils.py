@@ -24,29 +24,31 @@ def grad_penalty(discriminator, real_images, fake_images, cuda):
 # TODO
 
 # gradient hook: adding noise only. grad clipping is replaced by grad penalty.
-def create_dp_hook(module, grad_input, grad_output):
+def master_hook_adder(module, grad_input, grad_output):
     global dynamic_hook
     return dynamic_hook(module, grad_input, grad_output)
 
 def dummy_hook(module, grad_input, grad_output):
     pass
 
-def dp_hook(module, grad_in, grad_out, sensitivity):
-    global noise_multiplier
-    grad_wrt_image = grad_in[0]
-    grad_input_shape = grad_wrt_image.size()
-    batchsize = grad_input_shape[0]
+def dp_hook(sensitivity, noise_multiplier):
+    def hook_function(module, grad_input, grad_output):
+        grad_wrt_input = grad_input[0]
+        grad_input_shape = grad_wrt_input.size()
+        batch_size = grad_input_shape[0]
 
-    # reshape
-    grad_wrt_image = grad_wrt_image.view(batchsize, -1)
+        # reshape
+        grad_wrt_input = grad_wrt_input.view(batch_size, -1)
 
-    # add noise, regarding noise_multiplier and SENSITIVITY
-    noise = noise_multiplier * sensitivity * torch.randn_like(grad_wrt_image)
-    grad_wrt_image = grad_wrt_image + noise
+        # add noise, considering noise_multiplier and sensitivity
+        noise = noise_multiplier * sensitivity * torch.randn_like(grad_wrt_input)
+        grad_wrt_input = grad_wrt_input + noise
 
-    # reshape to original grad shape
-    grad_in_new = [grad_wrt_image.view(grad_input_shape)]
-    for i in range(len(grad_in) - 1):
-        grad_in_new.append(grad_in[i + 1])
+        # reshape to the original grad shape
+        grad_in_new = [grad_wrt_input.view(grad_input_shape)]
+        for i in range(1, len(grad_input)):
+            grad_in_new.append(grad_input[i])
 
-    return tuple(grad_in_new)
+        return tuple(grad_in_new)
+
+    return hook_function

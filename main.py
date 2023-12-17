@@ -78,7 +78,7 @@ if __name__ == "__main__":
         pretrain_discriminator(D, data_loader=dataloader, epochs=5, batch_size=batch_size, noise_dim=noise_dim, cuda=cuda)
         # add hook for discriminator
         utils.dynamic_hook = utils.dummy_hook
-        D.model[0].register_backward_hook(utils.create_dp_hook)
+        D.model[0].register_full_backward_hook(utils.master_hook_adder)
 
     # differential privacy
     if args.config_model == 2:  # dp-wgan
@@ -108,9 +108,7 @@ if __name__ == "__main__":
             ############################################
             # no hook
             if args.config_model == 3:
-                dynamic_hook = utils.dummy_hook
-                for p in D.parameters():
-                    p.requires_grad = True
+                utils.dynamic_hook = utils.dummy_hook
 
             optimizer_D.zero_grad()
             z = torch.randn((bs, noise_dim))
@@ -139,9 +137,7 @@ if __name__ == "__main__":
             # ------------train generator--------------#
             ############################################
             if args.config_model == 3:
-                for p in D.parameters():
-                    p.requires_grad = False
-                dynamic_hook = utils.dp_hook
+                utils.dynamic_hook = utils.dp_hook(sensitivity, cfg['noise_multiplier'])
 
             optimizer_G.zero_grad()
             gen_imgs = G(z)

@@ -24,6 +24,7 @@ config_gs_wgan = {
     'lr_G': 5e-5,
     'gen_images_dir': "./gen_images_gswgan",
     'num_workers': 0,
-    'total_epochs': 35,
-    'batch_size': 128
+    'total_epochs': 55,
+    'batch_size': 128,
+    'noise_multiplier': 0.3,
 }
