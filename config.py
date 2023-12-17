@@ -24,8 +24,11 @@ config_gs_wgan = {
     'lr_G': 2e-4,
     'gen_images_dir': "./gen_images_gswgan",
     'num_workers': 0,
-    'total_epochs': 55,
+    'total_epochs': 50,
+    'total_iterations': 456,
     'batch_size': 128,
-    'noise_multiplier': 0.3,
-    'clip_bound_batch': 1.0
+    'noise_multiplier': 0.5,
+    'clip_bound_batch': 1.0,
+    'delta': 1e-4,
+    'sample_prop': 2e-3
 }

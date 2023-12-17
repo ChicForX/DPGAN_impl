@@ -1,6 +1,9 @@
 import torch
-import matplotlib.pyplot as plt
+import os
+import sys
 import numpy as np
+from autodp import rdp_acct, rdp_bank
+
 
 # gradient penalty
 def grad_penalty(discriminator, real_images, fake_images, cuda):
@@ -20,6 +23,7 @@ def grad_penalty(discriminator, real_images, fake_images, cuda):
     gradient_penalty = ((gradients.norm(2, dim=1) - 1) ** 2).mean()
     return gradient_penalty
 
+
 # pruning
 # TODO
 
@@ -28,8 +32,10 @@ def master_hook_adder(module, grad_input, grad_output):
     global dynamic_hook
     return dynamic_hook(module, grad_input, grad_output)
 
+
 def dummy_hook(module, grad_input, grad_output):
     pass
+
 
 def dp_hook(sensitivity, noise_multiplier, clip_bound_batch):
     def hook_function(module, grad_input, grad_output):
@@ -59,3 +65,17 @@ def dp_hook(sensitivity, noise_multiplier, clip_bound_batch):
         return tuple(grad_in_new)
 
     return hook_function
+
+# calculate epsilon based on Renyi DP
+def cal_privacy_budget(cfg):
+    delta = cfg['delta']
+    batch_size = cfg['batch_size']
+    n_steps = cfg['total_iterations']
+    sigma = cfg['noise_multiplier']
+    func = lambda x: rdp_bank.RDP_gaussian({'sigma': sigma}, x)
+
+    acct = rdp_acct.anaRDPacct()
+    acct.compose_subsampled_mechanism(func, cfg['sample_prop'], coeff=n_steps * batch_size)
+    epsilon = acct.get_eps(delta)
+    print(f"ε = {epsilon}, δ = {delta}")
+

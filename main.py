@@ -109,6 +109,8 @@ if __name__ == "__main__":
             # no hook
             if args.config_model == 3:
                 utils.dynamic_hook = utils.dummy_hook
+                for p in D.parameters():
+                    p.requires_grad = True
 
             optimizer_D.zero_grad()
             z = torch.randn((bs, noise_dim))
@@ -117,7 +119,6 @@ if __name__ == "__main__":
             fake_imgs = G(z).detach()
             D_real_score = D(real_imgs)
             if args.config_model == 2:
-                # gradient penalty is included in opacus
                 loss_D = -torch.mean(D_real_score) + torch.mean(D(fake_imgs))
             else:
                 gp = utils.grad_penalty(D, real_imgs, fake_imgs, cuda)
@@ -138,6 +139,8 @@ if __name__ == "__main__":
             ############################################
             if args.config_model == 3:
                 utils.dynamic_hook = utils.dp_hook(sensitivity, cfg['noise_multiplier'], cfg['clip_bound_batch'])
+                for p in D.parameters():
+                    p.requires_grad = False
 
             optimizer_G.zero_grad()
             gen_imgs = G(z)
@@ -155,6 +158,8 @@ if __name__ == "__main__":
         if args.config_model == 2:
             epsilon = privacy_engine.accountant.get_epsilon(delta=cfg['delta'])
             print(f"ε = {epsilon}, δ = {cfg['delta']}")
+        elif args.config_model == 3 and epoch == total_epochs - 1:
+            utils.cal_privacy_budget(cfg)
         # save images 5*5
         save_image(gen_imgs.data[:25], "%s/ep%d.png" % (gen_images_dir, (epoch + 1)), nrow=5,
                    normalize=True)
